@@ -31,7 +31,7 @@ export function getOpacity(x, y, width, height ){
         height = 300;
     }
     let distance = Math.sqrt((x * x) + (y * y));
-    return 1 - (distance  / width);
+    return 1 - (distance * 1 / width);
 }
 
 export function createGrid(params){

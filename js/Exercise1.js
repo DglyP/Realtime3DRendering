@@ -1,11 +1,13 @@
 import * as THREE from 'https://cdn.skypack.dev/three@0.136.0/build/three.module.js';
 import {OrbitControls} from 'https://cdn.skypack.dev/three@0.136.0/examples/jsm/controls/OrbitControls.js';
+import {FontLoader} from 'https://cdn.skypack.dev/three@0.136.0/examples/jsm/loaders/FontLoader.js';
+import {TextGeometry} from 'https://cdn.skypack.dev/three@0.136.0/examples/jsm/geometries/TextGeometry.js';
 import * as BufferGeometryUtils from 'https://cdn.skypack.dev/three@0.136.0/examples/jsm/utils/BufferGeometryUtils.js';
 
 
 var allObjects = [];
 
-function createMaterial(){
+export function createMaterial(){
     const material = new THREE.MeshMatcapMaterial({
         side: THREE.DoubleSide,
     });
@@ -20,16 +22,68 @@ function solidGeometries(geometry){
 
 function lineGeometries(geometry){
     let material = new THREE.LineBasicMaterial ({ color: 0xffffff})
-    let obj = new THREE.Mesh(geometry, material); 
+    let obj = new THREE.LineSegments(geometry, material); 
     allObjects.push(obj);
 }
 
-export function primitives(){
+export function duplicate(amount){
+    let spread = 30;
+    let duplicatedObjects = []
+    for (let i = 1; i <= amount; i++) {
+        allObjects.forEach((obj, ndx) => {
+            let duplicate = obj.clone();
+            duplicate.position.z = i * spread;
+            duplicate.scale.x += i * 0.3;
+            duplicate.scale.y += i * 0.3;
+            duplicate.scale.z += i * 0.3;
+            
+            duplicatedObjects.push(duplicate);
+        });   
+    }
+    let fullArray = allObjects.concat(duplicatedObjects);
+    allObjects = fullArray;
+}
+
+// export function makeText(){
+//     { 
+//         const loader = new FontLoader();
+//         // promisify font loading
+//         function loadFont(url) {
+//             return new Promise((resolve, reject) => {
+//                 loader.load(url, resolve, undefined, reject);
+//             });
+//         }
+
+//         async function doit() {
+//             const font = await loadFont('js/helvetiker_regular.typeface.json');  /* threejsfundamentals: url */
+//             const geometry = new TextGeometry('three.js', {
+//                 font: font,
+//                 size: 3.0,
+//                 height: .2,
+//                 curveSegments: 12,
+//                 bevelEnabled: true,
+//                 bevelThickness: 0.15,
+//                 bevelSize: .3,
+//                 bevelSegments: 5,
+//             });
+//             const mesh = new THREE.Mesh(geometry, createMaterial());
+//             geometry.computeBoundingBox();
+//             geometry.boundingBox.getCenter(mesh.position).multiplyScalar(-1);
+//             const parent = new THREE.Object3D();
+//             parent.add(mesh);
+//             console.log(mesh);
+//             allObjects.push(mesh);
+//             return parent;
+//         }
+//         doit();
+//     }
+// }
+
+export function primitives(amount){
             {
             const width = 8;
             const height = 8;
             const depth = 8;
-            const test = new THREE.BoxGeometry(width, height, depth);
             solidGeometries(new THREE.BoxGeometry(width, height, depth));
         }
         {
@@ -199,6 +253,39 @@ export function primitives(){
             const depth = 8;
             lineGeometries( new THREE.WireframeGeometry(new THREE.BoxBufferGeometry(width, height, depth)));
         }
+        
+        { 
+            const loader = new FontLoader();
+            // promisify font loading
+            function loadFont(url) {
+                return new Promise((resolve, reject) => {
+                    loader.load(url, resolve, undefined, reject);
+                });
+            }
+
+            async function doit() {
+                const font = await loadFont('https://cdn.skypack.dev/three@0.136.0/examples/fonts/helvetiker_regular.typeface.json');  /* threejsfundamentals: url */
+                const geometry = new TextGeometry('three.js', {
+                    font: font,
+                    size: 3.0,
+                    height: .2,
+                    curveSegments: 12,
+                    bevelEnabled: true,
+                    bevelThickness: 0.15,
+                    bevelSize: .3,
+                    bevelSegments: 5,
+                });
+                const mesh = new THREE.Mesh(geometry, createMaterial());
+                geometry.computeBoundingBox();
+                geometry.boundingBox.getCenter(mesh.position).multiplyScalar(-1);
+                const parent = new THREE.Object3D();
+                parent.add(mesh);
+                allObjects.push(mesh);
+                return parent;
+            }
+            doit();
+        }
+        duplicate(amount);
         return allObjects;
 }
 

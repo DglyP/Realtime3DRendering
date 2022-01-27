@@ -28,8 +28,11 @@
     import * as THREE from 'https://cdn.skypack.dev/three@0.136.0/build/three.module.js';
     import {OrbitControls} from 'https://cdn.skypack.dev/three@0.136.0/examples/jsm/controls/OrbitControls.js';
     import * as BufferGeometryUtils from 'https://cdn.skypack.dev/three@0.136.0/examples/jsm/utils/BufferGeometryUtils.js';
+    import {FontLoader} from 'https://cdn.skypack.dev/three@0.136.0/examples/jsm/loaders/FontLoader.js';
+    import {TextGeometry} from 'https://cdn.skypack.dev/three@0.136.0/examples/jsm/geometries/TextGeometry.js';
     import * as Exercise1 from "./js/Exercise1.js"
     import * as Exercise2 from "./js/Exercise2.js"
+
 
     function main(){
         const canvas = document.querySelector( '#canvas' );
@@ -38,35 +41,56 @@
         const aspect = 2; //this is the canvas default
         const near = 0.1;
         const far = 1000; //How far does it compute
-        const separation = 10;
+        var textPosition = new THREE.Vector3(0,0,0)
+        var allObjects = [];
         const camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
         camera.position.set(0, -190, 100);
         camera.rotation.x = THREE.MathUtils.degToRad(55);
-
         const exercisesScene = new THREE.Scene();
-        exercisesScene.background = new THREE.Color(0x00000)
+        exercisesScene.background = new THREE.Color(0x333333)
 
+        //Light for primitives
+        {
+            const color = 0xFFFFFF;
+            const intensity = 1;
+            const light = new THREE.DirectionalLight(color, intensity);
+            light.position.set(-1, 2, 4);
+            exercisesScene.add(light);
+        }
+        
         //Exercise1 - Primitives
         {
-        const allObjects = Exercise1.primitives();
-        let i = 0
-        let j = 0
-        allObjects.forEach((obj, ndx) => {
-            obj.position.x = i * separation;
-            if ( i > 5 ){
-                j++;
-                obj.position.y = j * separation;
-                i = 0;
+        let duplicateAmount = 2
+        allObjects = Exercise1.primitives(duplicateAmount);
+        let xPos = 0
+        let yPos = 0
+        const separation = 20;
+
+        allObjects.forEach((object, ndx) => {
+            // console.log(object);
+            const obj = object;
+            if ( xPos > 5 ){
+                yPos++;
+                xPos = 0;
             }
-            i++;
+            if ( ndx % (allObjects.length/(duplicateAmount + 1)) == 0){
+                textPosition.x = xPos * separation; 
+                textPosition.y = yPos * separation;
+                xPos = 0;
+                yPos = 0;
+            }
+            obj.position.x = xPos * separation;
+            obj.position.y = yPos * separation;
+            xPos++;
             exercisesScene.add(obj)
-        });
+            });
         }
 
         //Exercise2 - Grid
+        {
         const gridGroup = Exercise2.createGrid();
         exercisesScene.add(gridGroup);
-
+        }
 
         //Axes Helper to be deleted
         const axesHelper = new THREE.AxesHelper( 500 );
@@ -74,6 +98,43 @@
 
         //Orbit Controls
         var controls = new OrbitControls (camera, renderer.domElement);
+
+        function makeText(){
+            // Font Loader
+        { 
+            const loader = new FontLoader();
+            // promisify font loading
+            function loadFont(url) {
+                return new Promise((resolve, reject) => {
+                    loader.load(url, resolve, undefined, reject);
+                });
+            }
+
+            async function doit() {
+                const font = await loadFont('https://cdn.skypack.dev/three@0.136.0/examples/fonts/helvetiker_regular.typeface.json');  /* threejsfundamentals: url */
+                const geometry = new TextGeometry('Ex 1', {
+                    font: font,
+                    size: 20.0,
+                    height: .2,
+                    curveSegments: 12,
+                    bevelEnabled: true,
+                    bevelThickness: 0.15,
+                    bevelSize: .3,
+                    bevelSegments: 5,
+                });
+                const mesh = new THREE.Mesh(geometry, Exercise1.createMaterial());
+                geometry.computeBoundingBox();
+                geometry.boundingBox.getCenter(mesh.position).multiplyScalar(-1);
+
+                const parent = new THREE.Object3D();
+                parent.position.x = textPosition.x + 20;
+                parent.position.y = textPosition.y + 20;
+                parent.add(mesh);
+                exercisesScene.add(parent)
+            }
+            doit();
+        }
+        }
 
 
         //Renderer Function
@@ -97,11 +158,20 @@
                 camera.updateProjectionMatrix();
             }
 
+            allObjects.forEach((obj, ndx) => {
+                const speed = .1 + 10 * .05;
+                const rot = time * speed;
+                obj.rotation.x = rot;
+                obj.rotation.y = rot;
+            });
+
+
             renderer.render(exercisesScene, camera);
             requestAnimationFrame(render);
         }
         
         requestAnimationFrame(render);
+        makeText();
     }
 
     main();
