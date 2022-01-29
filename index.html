@@ -37,17 +37,36 @@
     function main(){
         const canvas = document.querySelector( '#canvas' );
         const renderer = new THREE.WebGLRenderer({ canvas });
-        const fov = 40;
-        const aspect = 2; //this is the canvas default
-        const near = 0.1;
-        const far = 1000; //How far does it compute
+        const width = canvas.clientWidth;
+        const height = canvas.clientHeight;
+        const windowHalfX = window.innerWidth / 2;
+        const windowHalfY = window.innerHeight / 2;
+        const insetWidth = window.innerHeight / 4;
+        const insetHeight = window.innerHeight / 4;
         var textPosition = new THREE.Vector3(0,0,0)
         var allObjects = [];
-        const camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
+
+        const createCamera = () => {
+            const fov = 45;
+            const aspect = 2; //Before it was 2
+            const near = 0.1;
+            const far = 1000;
+            const camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
+            return camera
+        } 
+
+        const camera = createCamera();
         camera.position.set(0, -190, 100);
         camera.rotation.x = THREE.MathUtils.degToRad(55);
+
+        //Create Scene
         const exercisesScene = new THREE.Scene();
         exercisesScene.background = new THREE.Color(0x333333)
+        
+        //Axes Helper to be deleted
+        const axesHelper = new THREE.AxesHelper( 500 );
+        exercisesScene.add(axesHelper);
+
 
         //Light for primitives
         {
@@ -92,13 +111,6 @@
         exercisesScene.add(gridGroup);
         }
 
-        //Axes Helper to be deleted
-        const axesHelper = new THREE.AxesHelper( 500 );
-        exercisesScene.add(axesHelper);
-
-        //Orbit Controls
-        var controls = new OrbitControls (camera, renderer.domElement);
-
         function makeText(){
             // Font Loader
         { 
@@ -136,6 +148,38 @@
         }
         }
 
+        //Exercise 3 - Orthographic camera
+        const createOrtoCamera = () => {
+            const left = width / 2;
+            const right = width / 2; //Before it was 2
+            const top = height / 2;
+            const bottom = height / 2;
+            const near = 0.1;
+            const far = 1000;
+            const camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
+            return camera
+        } 
+
+        const cameraOrto = createCamera();
+        cameraOrto.position.z = camera.position.z;
+        cameraOrto.position.y = camera.position.y;
+        cameraOrto.position.x = camera.position.x;
+        cameraOrto.lookAt(0, 0, 0);
+        camera.add(cameraOrto);
+        renderer.setSize( window.innerWidth, window.innerHeight );
+        renderer.setPixelRatio(devicePixelRatio);
+        document.body.appendChild( renderer.domElement );
+        const left = 0;
+        const bottom = 0;
+
+        renderer.setViewport( 0, 0, window.innerWidth, window.innerHeight );
+        cameraOrto.aspect = Math.floor(width / 2) / height;
+        cameraOrto.updateProjectionMatrix();
+        exercisesScene.add(cameraOrto);
+        
+
+        //Orbit Controls
+        var controls = new OrbitControls (cameraOrto, renderer.domElement);
 
         //Renderer Function
         function resizeRendererToDisplaySize(renderer) {
@@ -157,6 +201,7 @@
                 camera.aspect = canvas.clientWidth / canvas.clientHeight;
                 camera.updateProjectionMatrix();
             }
+            
 
             allObjects.forEach((obj, ndx) => {
                 const speed = .1 + 10 * .05;
@@ -164,9 +209,13 @@
                 obj.rotation.x = rot;
                 obj.rotation.y = rot;
             });
-
-
-            renderer.render(exercisesScene, camera);
+            
+            renderer.render(exercisesScene, cameraOrto);
+            renderer.setClearColor( 0xFFFF00 );
+            renderer.clearDepth();
+            renderer.setScissor( 16, window.innerHeight - insetHeight - 16, insetWidth, insetHeight );
+            renderer.setViewport( 16, window.innerHeight - insetHeight - 16, insetWidth, insetHeight );
+            renderer.render( exercisesScene, camera ); 
             requestAnimationFrame(render);
         }
         
