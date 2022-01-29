@@ -32,7 +32,7 @@ export function duplicate(amount){
     for (let i = 1; i <= amount; i++) {
         allObjects.forEach((obj, ndx) => {
             let duplicate = obj.clone();
-            duplicate.position.z = i * spread;
+            duplicate.position.z = i * 2 * spread;
             duplicate.scale.x += i * 0.3;
             duplicate.scale.y += i * 0.3;
             duplicate.scale.z += i * 0.3;

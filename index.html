@@ -19,8 +19,13 @@
         }
     </style>
 </head>
-<body>
-    <canvas id="canvas"></canvas>
+<body style="margin: 0;overflow: hidden;">    
+    <canvas id="canvas" style="position: absolute; pointer-events: none;"></canvas>
+    <div id="camera1" style="width: 50%;height: 100%;	position: absolute;	top: 0;	left: 0; "></div>
+    <div id="camera2" style="width: 50%;height: 100%;	position: absolute;	top: 0;	left: 50%; color: white; font-family: Arial, Helvetica, sans-serif;">Ortographic Camera</div>
+
+    
+    
 </body>
 </html>
 <script type = module>
@@ -36,7 +41,8 @@
 
     function main(){
         const canvas = document.querySelector( '#canvas' );
-        const renderer = new THREE.WebGLRenderer({ canvas });
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        document.body.appendChild( renderer.domElement );
         const width = canvas.clientWidth;
         const height = canvas.clientHeight;
         const windowHalfX = window.innerWidth / 2;
@@ -48,7 +54,7 @@
 
         const createCamera = () => {
             const fov = 45;
-            const aspect = 2; //Before it was 2
+            const aspect = height / width;//Before it was 2
             const near = 0.1;
             const far = 1000;
             const camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
@@ -56,8 +62,8 @@
         } 
 
         const camera = createCamera();
-        camera.position.set(0, -190, 100);
-        camera.rotation.x = THREE.MathUtils.degToRad(55);
+        camera.position.set(87, 106, 215);
+        camera.rotation.x = -0.3
 
         //Create Scene
         const exercisesScene = new THREE.Scene();
@@ -156,30 +162,31 @@
             const bottom = height / 2;
             const near = 0.1;
             const far = 1000;
-            const camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
+            const camera = new THREE.OrthographicCamera(left, right, top, bottom, near, far);
             return camera
         } 
 
         const cameraOrto = createCamera();
-        cameraOrto.position.z = camera.position.z;
-        cameraOrto.position.y = camera.position.y;
-        cameraOrto.position.x = camera.position.x;
-        cameraOrto.lookAt(0, 0, 0);
-        camera.add(cameraOrto);
+        cameraOrto.position.set(87, 106, 215);
+        cameraOrto.rotation.x = -0.3
+        cameraOrto.add(camera);
         renderer.setSize( window.innerWidth, window.innerHeight );
         renderer.setPixelRatio(devicePixelRatio);
         document.body.appendChild( renderer.domElement );
         const left = 0;
         const bottom = 0;
 
-        renderer.setViewport( 0, 0, window.innerWidth, window.innerHeight );
+        renderer.setViewport(left, bottom, Math.floor(width / 2), height);
         cameraOrto.aspect = Math.floor(width / 2) / height;
         cameraOrto.updateProjectionMatrix();
-        exercisesScene.add(cameraOrto);
+        exercisesScene.add(camera);
         
 
         //Orbit Controls
-        var controls = new OrbitControls (cameraOrto, renderer.domElement);
+        var controls = new OrbitControls (camera, document.getElementById('camera1'));
+        var controlsOrto = new OrbitControls (cameraOrto, document.getElementById('camera2'));
+        
+        
 
         //Renderer Function
         function resizeRendererToDisplaySize(renderer) {
@@ -194,12 +201,18 @@
         }
 
         function render(time) {
-            time *= 0.001;
+            time *= 0.001
+            let currentWidth = width;
+            let currentHeight = height;
 
             if (resizeRendererToDisplaySize(renderer)) {
                 const canvas = renderer.domElement;
                 camera.aspect = canvas.clientWidth / canvas.clientHeight;
                 camera.updateProjectionMatrix();
+                cameraOrto.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                currentHeight = canvas.clientHeight;
+                currentWidth = canvas.clientWidth;
             }
             
 
@@ -209,16 +222,20 @@
                 obj.rotation.x = rot;
                 obj.rotation.y = rot;
             });
-            
-            renderer.render(exercisesScene, cameraOrto);
-            renderer.setClearColor( 0xFFFF00 );
+
+            requestAnimationFrame( render );
+
+            renderer.setClearColor( 0x000000 );
+            renderer.setViewport(left, bottom, Math.floor(currentWidth / 2), currentHeight);
+            renderer.render( exercisesScene, camera );
+            renderer.setClearColor( 0x333333 );
             renderer.clearDepth();
-            renderer.setScissor( 16, window.innerHeight - insetHeight - 16, insetWidth, insetHeight );
-            renderer.setViewport( 16, window.innerHeight - insetHeight - 16, insetWidth, insetHeight );
-            renderer.render( exercisesScene, camera ); 
-            requestAnimationFrame(render);
+            renderer.setScissorTest( true );
+            renderer.setScissor(Math.floor(currentWidth/2), bottom, Math.floor(currentWidth / 2), currentHeight);
+            renderer.setViewport(Math.floor(currentWidth/2), bottom, Math.floor(currentWidth / 2), currentHeight);
+            renderer.render( exercisesScene, cameraOrto );
+            renderer.setScissorTest( false );
         }
-        
         requestAnimationFrame(render);
         makeText();
     }
